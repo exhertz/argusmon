@@ -4,7 +4,7 @@
       <NuxtLink 
         v-for="server in servers" 
         :key="server.id"
-        :to="`/servers/${server.id}`"
+        :to="`/server/${server.id}`"
         class="server-item"
         :class="{ active: isActive(server.id) }"
       >
@@ -15,9 +15,9 @@
         </div>
       </NuxtLink>
       <NuxtLink 
-        to="/api/server"
+        to="/server/new"
         class="server-item add-server"
-        :class="{ active: route.path === '/api/server' }"
+        :class="{ active: route.path === '/server/new' }"
       >
         <div class="server-info">
           <div class="server-name">Add server</div>
@@ -29,7 +29,7 @@
 
 <script setup>
 const route = useRoute()
-const { data: servers } = await useFetch('/api/servers')
+const { data: servers } = await useFetch('/api/server')
 
 const isActive = (serverId) => {
   return route.params.id === serverId.toString()
