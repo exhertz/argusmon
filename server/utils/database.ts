@@ -28,7 +28,7 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS cpu_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       server_id INTEGER NOT NULL,
-      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      timestamp INTEGER DEFAULT CURRENT_TIMESTAMP,
       cpu_total INTEGER NOT NULL,
       cpu_idle INTEGER NOT NULL, 
       FOREIGN KEY (server_id) REFERENCES servers(id)
@@ -39,7 +39,7 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS disk_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       server_id INTEGER NOT NULL,
-      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      timestamp INTEGER DEFAULT CURRENT_TIMESTAMP,
       disk_total INTEGER NOT NULL,
       disk_free INTEGER NOT NULL,  
       FOREIGN KEY (server_id) REFERENCES servers(id)
@@ -50,7 +50,7 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS ram_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       server_id INTEGER NOT NULL,
-      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      timestamp INTEGER DEFAULT CURRENT_TIMESTAMP,
       ram_total INTEGER NOT NULL,    
       ram_usage INTEGER NOT NULL,    
       ram_available INTEGER NOT NULL,
@@ -64,7 +64,7 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS net_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       server_id INTEGER NOT NULL,
-      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      timestamp INTEGER DEFAULT CURRENT_TIMESTAMP,
       net_download INTEGER NOT NULL,  
       net_upload INTEGER NOT NULL,  
       FOREIGN KEY (server_id) REFERENCES servers(id)
@@ -100,63 +100,59 @@ export function getServerList(): Server[] {
  * @param serverId Server ID
  * @returns CPU metrics object or null if metrics not found
  */
-export function getServerCpuMetrics(serverId: number): CpuMetrics | null {
-  const db = useDB();
-  return db.prepare(`
-    SELECT cpu_total, cpu_idle 
-    FROM cpu_metrics 
-    WHERE server_id = ? 
-    ORDER BY timestamp DESC 
-    LIMIT 1
-  `).get(serverId) as CpuMetrics | null;
+export function getServerCpuMetrics(serverId: number): Array<CpuMetrics> {
+    const db = useDB();
+    return db.prepare(`
+      SELECT strftime('%s', timestamp) as timestamp, cpu_total, cpu_idle 
+      FROM cpu_metrics 
+      WHERE server_id = ? 
+      ORDER BY timestamp DESC
+    `).all(serverId) as Array<CpuMetrics>;
 }
 
 /**
  * Gets disk metrics for the specified server
  * @param serverId Server ID
- * @returns Disk metrics object or null if metrics not found
+ * @returns Array of Disk metrics objects
  */
-export function getServerDiskMetrics(serverId: number): DiskMetrics | null {
+export function getServerDiskMetrics(serverId: number): Array<DiskMetrics> {
   const db = useDB();
   return db.prepare(`
-    SELECT disk_total, disk_free 
+    SELECT strftime('%s', timestamp) as timestamp, disk_total, disk_free 
     FROM disk_metrics 
     WHERE server_id = ? 
-    ORDER BY timestamp DESC 
-    LIMIT 1
-  `).get(serverId) as DiskMetrics | null;
+    ORDER BY timestamp DESC
+  `).all(serverId) as Array<DiskMetrics>;
 }
 
 /**
  * Gets RAM metrics for the specified server
  * @param serverId Server ID
- * @returns RAM metrics object or null if metrics not found
+ * @returns Array of RAM metrics objects
  */
-export function getServerRamMetrics(serverId: number): RamMetrics | null {
+export function getServerRamMetrics(serverId: number): Array<RamMetrics> {
   const db = useDB();
   return db.prepare(`
-    SELECT ram_total, ram_usage, ram_available, ram_cached, ram_free 
+    SELECT strftime('%s', timestamp) as timestamp, ram_total, ram_usage, ram_available, ram_cached, ram_free 
     FROM ram_metrics 
     WHERE server_id = ? 
-    ORDER BY timestamp DESC 
-    LIMIT 1
-  `).get(serverId) as RamMetrics | null;
+    ORDER BY timestamp DESC
+  `).all(serverId) as Array<RamMetrics>;
 }
 
 /**
  * Gets network metrics for the specified server
  * @param serverId Server ID
- * @returns Network metrics object or null if metrics not found
+ * @returns Array of network metrics objects
  */
-export function getServerNetMetrics(serverId: number): NetMetrics | null {
+export function getServerNetMetrics(serverId: number): Array<NetMetrics> {
   const db = useDB();
   return db.prepare(`
-    SELECT net_download, net_upload 
+    SELECT strftime('%s', timestamp) as timestamp, net_download, net_upload 
     FROM net_metrics 
     WHERE server_id = ? 
-    ORDER BY timestamp DESC 
-    LIMIT 1
-  `).get(serverId) as NetMetrics | null;
+    ORDER BY timestamp DESC
+  `).all(serverId) as Array<NetMetrics>;
 }
 
 /**
@@ -195,9 +191,9 @@ export function fillTestData() {
     console.log('Filling servers table with test data...');
     
     const servers = [
-      { ip: '192.168.1.10', port: 22, hostname: 'server1.local', active: 1 },
-      { ip: '192.168.1.11', port: 22, hostname: 'server2.local', active: 1 },
-      { ip: '192.168.1.12', port: 22, hostname: 'server3.local', active: 0 },
+      { ip: '192.168.1.10', port: 22, hostname: 'mailserver.local', active: 1 },
+      { ip: '192.168.1.11', port: 22, hostname: 'webserver.local', active: 1 },
+      { ip: '192.168.1.12', port: 22, hostname: 'testserver.local', active: 0 },
       { ip: '10.0.0.1', port: 22, hostname: 'production1.example.com', active: 1 },
       { ip: '10.0.0.2', port: 8022, hostname: 'production2.example.com', active: 1 }
     ];
@@ -433,12 +429,12 @@ export function updateInterval(serverId: number, intervalType: IntervalType, val
  * @param hostname Server hostname (optional)
  * @returns ID of the new server or null in case of error
  */
-export function addServer(ip: string, port: number, hostname?: string): number | null {
+export function addServer(ip: string, port: number, hostname: string): number | null {
   try {
     const db = useDB();
     const result = db.prepare(
       'INSERT INTO servers (ip, port, hostname, active) VALUES (?, ?, ?, 1)'
-    ).run(ip, port, hostname || null);
+    ).run(ip, port, hostname);
     
     const serverId = result.lastInsertRowid as number;
     
@@ -451,4 +447,4 @@ export function addServer(ip: string, port: number, hostname?: string): number |
     console.error(`Error adding server ${ip}:${port}:`, error);
     return null;
   }
-} 
+}

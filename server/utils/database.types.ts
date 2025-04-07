@@ -10,16 +10,19 @@ export interface Server {
 }
 
 export interface CpuMetrics {
+  timestamp: string;
   cpu_total: number;
   cpu_idle: number;
 }
 
 export interface DiskMetrics {
+  timestamp: string;
   disk_total: number;
   disk_free: number;
 }
 
 export interface RamMetrics {
+  timestamp: string;
   ram_total: number;
   ram_usage: number;
   ram_available: number;
@@ -28,6 +31,7 @@ export interface RamMetrics {
 }
 
 export interface NetMetrics {
+  timestamp: string;
   net_download: number;
   net_upload: number;
 }
