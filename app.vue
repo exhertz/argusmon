@@ -4,11 +4,26 @@
     <Sidebar />
     <div class="layout-main-container">
       <div class="layout-main">
+        <NotificationService ref="notificationService" />
         <NuxtPage />
       </div>
     </div>
   </div>
 </template>
+
+<script setup>
+import { onMounted, ref } from 'vue';
+import NotificationService from '~/components/NotificationService.vue';
+
+const { $notify } = useNuxtApp();
+const notificationService = ref(null);
+
+onMounted(() => {
+  if (notificationService.value) {
+    $notify.setService(notificationService.value);
+  }
+});
+</script>
 
 <style>
 body {

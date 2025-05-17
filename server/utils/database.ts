@@ -96,6 +96,15 @@ export function getServerList(): Server[] {
 }
 
 /**
+ * Gets list of all active servers from the database
+ * @returns Array of active server objects
+ */
+export function getAllActiveServers(): Server[] {
+  const db = useDB();
+  return db.prepare('SELECT * FROM servers WHERE active = 1').all() as Server[];
+}
+
+/**
  * Gets CPU metrics for the specified server
  * @param serverId Server ID
  * @returns CPU metrics object or null if metrics not found
@@ -167,7 +176,7 @@ export function getUpdateInterval(serverId: number, intervalType: IntervalType):
     SELECT ${intervalType} as interval_value
     FROM intervals
     WHERE server_id = ?
-  `).get(serverId);
+  `).get(serverId) as { interval_value: number } | undefined;
   
   if (!result) {
     const defaultIntervals: Record<IntervalType, number> = {
@@ -218,10 +227,10 @@ export function fillTestData() {
     
     for (const server of insertedServers) {
       try {
-        const cpuInterval = Math.floor(Math.random() * 30000) + 30000; // 30-60 seconds
-        const diskInterval = Math.floor(Math.random() * 300000) + 300000; // 5-10 minutes
-        const ramInterval = Math.floor(Math.random() * 30000) + 30000; // 30-60 seconds
-        const netInterval = Math.floor(Math.random() * 30000) + 30000; // 30-60 seconds
+        const cpuInterval = (Math.floor(Math.random() * 30) + 60) * 1000; // 30-60 seconds
+        const diskInterval = (Math.floor(Math.random() * 60 * 5) + 60 * 10) * 1000; // 5-10 minutes
+        const ramInterval = (Math.floor(Math.random() * 30) + 60) * 1000; // 30-60 seconds
+        const netInterval = (Math.floor(Math.random() * 30) + 60) * 1000; // 30-60 seconds
         
         insertIntervals.run(server.id, cpuInterval, diskInterval, ramInterval, netInterval);
       } catch (error) {
@@ -446,5 +455,53 @@ export function addServer(ip: string, port: number, hostname: string): number | 
   } catch (error) {
     console.error(`Error adding server ${ip}:${port}:`, error);
     return null;
+  }
+}
+
+/**
+ * Gets server by ID
+ * @param serverId Server ID
+ * @returns Server object or null if not found
+ */
+export function getServerById(serverId: number): Server | null {
+  try {
+    const db = useDB();
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId) as Server | undefined;
+    return server || null;
+  } catch (error) {
+    console.error(`Error getting server with ID ${serverId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Activates a server by setting its active status to 1
+ * @param serverId Server ID
+ * @returns true on success, false on error
+ */
+export function activateServer(serverId: number): boolean {
+  try {
+    const db = useDB();
+    db.prepare('UPDATE servers SET active = 1 WHERE id = ?').run(serverId);
+    return true;
+  } catch (error) {
+    console.error(`Error activating server ${serverId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Deactivates a server by setting its active status to 0
+ * @param serverId Server ID
+ * @returns true on success, false on error
+ */
+export function deactivateServer(serverId: number): boolean {
+  try {
+    const db = useDB();
+    db.prepare('UPDATE servers SET active = 0 WHERE id = ?').run(serverId);
+    return true;
+  } catch (error) {
+    console.error(`Error deactivating server ${serverId}:`, error);
+    return false;
   }
 }

@@ -6,6 +6,9 @@
     </div>
     <div class="layout-content">
       <form @submit.prevent="handleSubmit" class="server-form">
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
         <div class="form-group">
           <label for="name">Name</label>
           <input 
@@ -48,7 +51,12 @@ const form = ref({
   port: ''
 })
 
+const error = ref('')
+
+const { $notify } = useNuxtApp()
+
 const handleSubmit = async () => {
+  error.value = ''
   try {
     const response = await fetch('/api/server', {
       method: 'POST',
@@ -59,15 +67,18 @@ const handleSubmit = async () => {
     })
     
     if (response.ok) {
-      // Очищаем форму после успешной отправки
-      form.value = {
-        name: '',
-        ip: '',
-        port: ''
-      }
+      $notify.show({
+        body: 'Сервер создан!'
+      });
+      const data = await response.json()
+      await navigateTo(`/server/${data.serverId}`)
+    } else {
+      const errorData = await response.json()
+      error.value = errorData.message || 'Произошла ошибка при добавлении сервера'
     }
   } catch (error) {
     console.error('Ошибка при отправке формы:', error)
+    error.value = 'Произошла ошибка при добавлении сервера'
   }
 }
 </script>
@@ -132,5 +143,12 @@ label {
 
 .layout-content {
   padding-top: 2rem;
+}
+
+.error-message {
+  color: #f44336;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(244, 67, 54, 0.1);
 }
 </style> 

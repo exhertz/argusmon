@@ -8,9 +8,9 @@
         class="server-item"
         :class="{ active: isActive(server.id) }"
       >
-        <span class="status-indicator" :class="server.status"></span>
+        <span class="status-indicator" :class="server.active ? 'online' : 'offline'"></span>
         <div class="server-info">
-          <div class="server-name">{{ server.name }}</div>
+          <div class="server-name">{{ server.hostname }}</div>
           <div class="server-ip">{{ server.ip }}</div>
         </div>
       </NuxtLink>
@@ -29,7 +29,12 @@
 
 <script setup>
 const route = useRoute()
-const { data: servers } = await useFetch('/api/server')
+const { data: servers, refresh } = await useFetch('/api/server')
+
+// Обновляем список серверов при изменении маршрута
+watch(() => route.path, () => {
+  refresh()
+})
 
 const isActive = (serverId) => {
   return route.params.id === serverId.toString()
